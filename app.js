@@ -7,39 +7,28 @@
 
 // additional:
 
-// show more button
-// search by firts letter of name / last name
+// click on related contact to dsiplay additional information on the contact
+// "show more" button
+// search by first letter or name / last name
 // search
-
-// Example user:
-// {
-//     "id": 1,
-//     "firstName": "Paul",
-//     "surname": "Crowe",
-//     "age": 28,
-//     "gender": "male",
-//     "friends": [
-//       2
-//     ]
-//   }
-
 
 const Model = (() => {
 
     const endpoint = "http://localhost:3000/users/";
     let group;
 
-
-
-    // store all the data after first fetch and use it form there on, or make a new request every time
-    // data on friends is needed??
+    fetchUsers = (displayUsers) => {
+        fetch(endpoint)
+            .then(response => response.json())
+            .then(data => group = data)
+            .then(() => {
+                displayUsers(group);
+            });
+    }
 
     const _parseFriends = (friendsIds) => {
         // helper function used by fetchFriends function
-        // takses array of user's friend's ids; returns coresonding array of user's friends objects
-
-        // just fetch friends directly??
-
+        // takses array of user's friend's ids; returns coresonding array of user's friends' objects
         const friends = [];
         friendsIds.forEach((friendId) => {
             group.forEach((member) => {
@@ -51,9 +40,7 @@ const Model = (() => {
         return friends;
     }
 
-    // this can be done without network request - just useing data stored
-    // the version using network request is more scalable 
-    const fetchFriends = (userId, callback) => {
+    const fetchFriends = (userId, displayContacts) => {
         // receives user id
         // returns (a promise that resolves to) array of friends objects 
         return fetch(endpoint + userId)
@@ -61,18 +48,16 @@ const Model = (() => {
             .then(data => data.friends)
             .then(friends => _parseFriends(friends))
             .then(parsedFriends => {
-                if(callback) {
-                    callback(parsedFriends)
+                if(displayContacts) {
+                    displayContacts(parsedFriends)
                 }
                 return parsedFriends;
             });
-        // refactor it to just return freinds' ids, not friends' objects?
     }
 
     const getFriendsOfFriends = (userId) => {
-        const friendsOfFriends = [];
         // takes userId; returns array of friends of friends
-        // (those who are two steps away from the user but not directly connected to him)
+        const friendsOfFriends = [];
         const ownFriends = [];
         fetchFriends(userId)
             .then(friends => {
@@ -93,14 +78,14 @@ const Model = (() => {
 
     const getSuggestedFriends = (userId) => {
         const suggestedFriends = [];
-        // get user friends ids from his object:
+        // get user friends' ids from his object:
         const user = group.find((member) => {
             return member.id == userId;
         });
         const usersFriends = user.friends;
 
         group.forEach((member) => {
-            // if group member is not directly connected to the user, and its is not the user himself
+            // if group member is not directly connected to the user, and it is not the user himself
             if (!usersFriends.includes(member.id) && userId != member.id) {
                 // and he / she knows 2 or more direct friends of the user
                 let countCommonFriends = 0;
@@ -116,15 +101,6 @@ const Model = (() => {
             }
         });
         return suggestedFriends;
-    }
-
-    fetchUsers = (callback) => {
-        fetch(endpoint)
-            .then(response => response.json())
-            .then(data => group = data)
-            .then(() => {
-                callback(group);
-            });
     }
 
     return {
@@ -149,9 +125,9 @@ const View = (() => {
         const userNameElement = document.createElement("p");
         const userAgeElement = document.createElement("p");
         const userGenderElement = document.createElement("p");
-        userNameElement.innerHTML = `${user.firstName} ${user.surname}` || "(not provided)";
-        userAgeElement.innerHTML = user.age || "(not provided)";
-        userGenderElement.innerHTML = user.gender || "(not provided)";
+        userNameElement.innerHTML = `<span class="name-identifyer">Name:</span> ${user.firstName} ${user.surname}` || "(not provided)";
+        userAgeElement.innerHTML = `Age: ${user.age}` || "(not provided)";
+        userGenderElement.innerHTML = `<span class="gender-identifyer">Gender:</span> ${user.gender}` || "(not provided)";
         singleUserElement.appendChild(userNameElement);
         singleUserElement.appendChild(userAgeElement);
         singleUserElement.appendChild(userGenderElement);
@@ -174,41 +150,63 @@ const View = (() => {
         })
     }
 
-
-    const displayRelatedContacts = (contacts, type) => {
+    const displayRelatedContacts = (contacts) => {
         const relatedContactsElement = document.getElementsByClassName("related-contacts")[0];
 
         while (relatedContactsElement.firstChild) {
             relatedContactsElement.removeChild(relatedContactsElement.firstChild);
         }
-        // see how to create a modal or display contast on the side
-        // pass this method (somehow) whether it is friends, or fs of fs, or suggestions that it
-        // is displaying
-        contacts.forEach((contact) => {
-            createContact(contact);
-        });
 
+        if(contacts && contacts.length > 0) {
+            contacts.forEach((contact) => {
+                createContact(contact);
+            });
+        } else {
+            relatedContactsElement.innerHTML = "no contacts to display"
+        }
+    }
+
+    const identifySelectedUser = (userId) => {
+        const allUserElements = document.getElementsByClassName("user");
+        const clickedUserElement = document.getElementById(userId);
+        const friendsBtn = document.getElementsByClassName("friends-btn")[0];
+
+        Array.from(allUserElements).forEach((element) => {
+            element.classList.remove("selected");
+        })
+        clickedUserElement.classList.add("selected");
+
+        friendsBtn.id = userId;
+    }
+
+    const markSelectedButton = (e) => {
+    
+        const allButtons = document.getElementsByClassName("buttons-container")[0].children;
+        Array.from(allButtons).forEach((button) => {
+            button.classList.remove("selected");
+        })
+        if(e){
+            const lastClickedButton = e.target;
+            lastClickedButton.classList.add("selected");
+        } else {
+            const friendsBtn = document.getElementsByClassName("friends-btn")[0];
+            friendsBtn.classList.add("selected");
+        }
     }
 
     return {
         displayUsers,
-        displayRelatedContacts
+        displayRelatedContacts,
+        identifySelectedUser,
+        markSelectedButton
     }
 
 })();
-
-
 
 // CONTROLLER
 
 const Controller = ((Model, View) => {
 
-    // event listener on users element to listen on clicks on user div and take its id
-    // to be used by fetchFriends
-
-    // event listener on each of the tabs to take "type" of contact that is to displayed
-
-    // elements
     const usersElement = document.getElementsByClassName("users")[0];
 
     Model.fetchUsers(View.displayUsers);
@@ -217,13 +215,16 @@ const Controller = ((Model, View) => {
     let suggestedFriends;
 
     const handleDisplayFriends = (e) => {
-        if (e.target.className === "user" || e.target.parentNode.className === "user") {
-            const userId = e.target.id || e.target.parentNode.id;
+        const el = e.target;
+        if (el.className === "user" || el.parentNode.className === "user" || el.className === "friends-btn") {
+            const userId = el.id || el.parentNode.id;
 
             friendsOfFriends = Model.getFriendsOfFriends(userId);
             suggestedFriends = Model.getSuggestedFriends(userId);
 
             Model.fetchFriends(userId, View.displayRelatedContacts);
+            View.identifySelectedUser(userId);
+            View.markSelectedButton();
         }
     }
 
@@ -236,20 +237,14 @@ const Controller = ((Model, View) => {
 
     }
 
-    // on handleDisplayFriends have methods for f of fs and suggested contacts run,
-    // and save needed data in variable, than have display method use data when needed
-    // store data inside handleDisplayFriends?
-
-
     // event listeners
 
     usersElement.addEventListener("click", handleDisplayFriends);
 
-    document.getElementById("suggested").addEventListener("click", handleDisplaySugestedFriends);
-
-    document.getElementById("friends-of-friends").addEventListener("click", handleDisplayFriendsOfFriends);
-
-
+    document.getElementsByClassName("buttons-container")[0].addEventListener("click", View.markSelectedButton);
+    document.getElementsByClassName("friends-btn")[0].addEventListener("click", handleDisplayFriends);
+    document.getElementsByClassName("suggested-friends-btn")[0].addEventListener("click", handleDisplaySugestedFriends);
+    document.getElementsByClassName("friends-of-friends-btn")[0].addEventListener("click", handleDisplayFriendsOfFriends);
 
 })(Model, View);
 
