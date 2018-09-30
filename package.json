@@ -4,11 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "json-server": "json-server --watch data.json"
+    "json-server": "json-server --watch data.json",
+    "start": "live-server"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "json-server": "^0.14.0"
+    "json-server": "^0.14.0",
+    "live-server": "^1.2.0"
   }
 }

@@ -1,6 +1,8 @@
-to run project do npm install
-to run server do npm run json-server
+to run project:
+    npm install
+    npm run json-server - to start json server
+    npm start - to start development server
 
-fetching friends could be done without network request - just useing data stored
-the version using network request is more scalable 
+fake API created using json-server: https://github.com/typicode/json-server
+
 

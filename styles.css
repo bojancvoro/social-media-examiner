@@ -2,7 +2,6 @@
 .users, .related-contacts-container {
     float: left;
     font-family: sans-serif;
-
 }
 
 .users {
@@ -15,8 +14,8 @@
     border: 1px solid gray;
     background-color: rgba(246, 246, 246, 0.3);
     display: inline-block;
-    margin-right: 1%;
-    margin-bottom: 1%;
+    margin-right: 0.7%;
+    margin-bottom: 0.7%;
     padding: 1%;
     cursor: pointer;
     box-sizing: border-box;
@@ -24,6 +23,7 @@
 }
 
 .user:hover {
+    transform: scale(1.01);
     -webkit-transform: scale(1.01);
     background-color: rgb(241, 241, 241);
     box-shadow: 0 0 4px #000000;
@@ -32,6 +32,7 @@
 div.selected {
     border: 1px solid rgb(59, 59, 59);
     background-color: rgb(241, 241, 241);
+    transform: scale(1.01);
     -webkit-transform: scale(1.01);
 }
 
@@ -71,7 +72,6 @@ p {
     outline:none;
     cursor: pointer;
     padding: 10px;
-    /* font-size: 18px; */
     background-color: rgba(246, 246, 246, 0.8);
     overflow: hidden;
 }
@@ -91,4 +91,8 @@ p {
 
 button.selected {
     background-color: rgb(241, 241, 241);
+}
+
+.error {
+    color: red;
 }

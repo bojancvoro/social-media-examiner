@@ -1,29 +1,32 @@
-// fake REST API created using json-server
-
-// to run project do npm install
-// to run server do npm run json-server
-
-// get single user: users/id
-
-// additional:
-
-// click on related contact to dsiplay additional information on the contact
-// "show more" button
-// search by first letter or name / last name
-// search
+// to run project:
+// npm install
+// npm run json-server - to start json server
+// npm start - to start development server
 
 const Model = (() => {
 
     const endpoint = "http://localhost:3000/users/";
     let group;
 
-    fetchUsers = (displayUsers) => {
+    function checkError(response) {
+        if(!response.ok) {
+            throw Error
+        }
+        return response;
+    }
+
+    fetchUsers = (displayUsers, displayErrorMsg) => {
         fetch(endpoint)
+            .then(checkError)
             .then(response => response.json())
-            .then(data => group = data)
-            .then(() => {
-                displayUsers(group);
-            });
+            .then(data => {
+                group = data;
+                return data
+            })
+            .then(data => {
+                displayUsers(data);
+            })
+            .catch(displayErrorMsg);
     }
 
     const _parseFriends = (friendsIds) => {
@@ -41,8 +44,7 @@ const Model = (() => {
     }
 
     const fetchFriends = (userId, displayContacts) => {
-        // receives user id
-        // returns (a promise that resolves to) array of friends objects 
+        // receives user id; returns (a promise that resolves to) array of friends objects 
         return fetch(endpoint + userId)
             .then(response => response.json())
             .then(data => data.friends)
@@ -52,10 +54,10 @@ const Model = (() => {
                     displayContacts(parsedFriends)
                 }
                 return parsedFriends;
-            });
+            })
     }
 
-    const getFriendsOfFriends = (userId) => {
+    const fetchFriendsOfFriends = (userId) => {
         // takes userId; returns array of friends of friends
         const friendsOfFriends = [];
         const ownFriends = [];
@@ -77,8 +79,9 @@ const Model = (() => {
     }
 
     const getSuggestedFriends = (userId) => {
+        // takes user's id; returns an array of suggested friends
         const suggestedFriends = [];
-        // get user friends' ids from his object:
+        // get user friends' ids from the user's object
         const user = group.find((member) => {
             return member.id == userId;
         });
@@ -107,7 +110,7 @@ const Model = (() => {
         group,
         fetchUsers,
         fetchFriends,
-        getFriendsOfFriends,
+        fetchFriendsOfFriends,
         getSuggestedFriends
     }
 
@@ -162,7 +165,7 @@ const View = (() => {
                 createContact(contact);
             });
         } else {
-            relatedContactsElement.innerHTML = "no contacts to display"
+            relatedContactsElement.innerHTML = "<p>No contacts to display.</p>";
         }
     }
 
@@ -173,18 +176,17 @@ const View = (() => {
 
         Array.from(allUserElements).forEach((element) => {
             element.classList.remove("selected");
-        })
+        });
         clickedUserElement.classList.add("selected");
 
         friendsBtn.id = userId;
     }
 
     const markSelectedButton = (e) => {
-    
         const allButtons = document.getElementsByClassName("buttons-container")[0].children;
         Array.from(allButtons).forEach((button) => {
             button.classList.remove("selected");
-        })
+        });
         if(e){
             const lastClickedButton = e.target;
             lastClickedButton.classList.add("selected");
@@ -194,11 +196,20 @@ const View = (() => {
         }
     }
 
+    const displayErrorMessage = () => {
+        const usersElement = document.getElementsByClassName("users")[0];
+        const errorMsgElement = document.createElement("p");
+        errorMsgElement.classList.add("error");
+        errorMsgElement.innerHTML = "We could't get requested data. Please try reloading the page."
+        usersElement.appendChild(errorMsgElement);
+    }
+
     return {
         displayUsers,
         displayRelatedContacts,
         identifySelectedUser,
-        markSelectedButton
+        markSelectedButton,
+        displayErrorMessage
     }
 
 })();
@@ -208,8 +219,12 @@ const View = (() => {
 const Controller = ((Model, View) => {
 
     const usersElement = document.getElementsByClassName("users")[0];
+    const buttonsContainer = document.getElementsByClassName("buttons-container")[0];
+    const friendsButton = document.getElementsByClassName("friends-btn")[0];
+    const suggestedFriendsButton = document.getElementsByClassName("suggested-friends-btn")[0];
+    const friendsOfFriendsButton = document.getElementsByClassName("friends-of-friends-btn")[0];
 
-    Model.fetchUsers(View.displayUsers);
+    Model.fetchUsers(View.displayUsers, View.displayErrorMessage);
 
     let friendsOfFriends;
     let suggestedFriends;
@@ -219,10 +234,10 @@ const Controller = ((Model, View) => {
         if (el.className === "user" || el.parentNode.className === "user" || el.className === "friends-btn") {
             const userId = el.id || el.parentNode.id;
 
-            friendsOfFriends = Model.getFriendsOfFriends(userId);
+            friendsOfFriends = Model.fetchFriendsOfFriends(userId);
             suggestedFriends = Model.getSuggestedFriends(userId);
 
-            Model.fetchFriends(userId, View.displayRelatedContacts);
+            Model.fetchFriends(userId, View.displayRelatedContacts, View.displayErrorMessage);
             View.identifySelectedUser(userId);
             View.markSelectedButton();
         }
@@ -237,14 +252,11 @@ const Controller = ((Model, View) => {
 
     }
 
-    // event listeners
-
     usersElement.addEventListener("click", handleDisplayFriends);
-
-    document.getElementsByClassName("buttons-container")[0].addEventListener("click", View.markSelectedButton);
-    document.getElementsByClassName("friends-btn")[0].addEventListener("click", handleDisplayFriends);
-    document.getElementsByClassName("suggested-friends-btn")[0].addEventListener("click", handleDisplaySugestedFriends);
-    document.getElementsByClassName("friends-of-friends-btn")[0].addEventListener("click", handleDisplayFriendsOfFriends);
+    buttonsContainer.addEventListener("click", View.markSelectedButton);
+    friendsButton.addEventListener("click", handleDisplayFriends);
+    suggestedFriendsButton.addEventListener("click", handleDisplaySugestedFriends);
+    friendsOfFriendsButton.addEventListener("click", handleDisplayFriendsOfFriends);
 
 })(Model, View);
 
